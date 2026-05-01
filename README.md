@@ -124,6 +124,27 @@ Test results on public mustard dataset:
     pixi run convert-models
     ```
 
+   The default TensorRT profile is `render_input`/`transf_input` with shape
+   `Nx160x160x6` and batch profile `min=1,opt=252,max=252`. To generate an
+   engine profile for another crop resolution:
+    ```bash
+    FOUNDATIONPOSE_ENGINE_INPUT_H=224 \
+    FOUNDATIONPOSE_ENGINE_INPUT_W=224 \
+    pixi run convert-models
+    ```
+
+   You can also tune the dynamic batch profile:
+    ```bash
+    FOUNDATIONPOSE_ENGINE_MIN_BATCH=1 \
+    FOUNDATIONPOSE_ENGINE_OPT_BATCH=128 \
+    FOUNDATIONPOSE_ENGINE_MAX_BATCH=252 \
+    pixi run convert-models
+    ```
+
+   The runtime buffer shapes and FoundationPose crop preprocessing must use the
+   same `H` and `W` as the generated engine. The included demo currently uses
+   `160x160`.
+
 ### Build Project
 
 1. Compile the project:

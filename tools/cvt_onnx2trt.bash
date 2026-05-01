@@ -12,6 +12,32 @@ scorer_onnx="${models_dir}/scorer_hwc.onnx"
 refiner_onnx="${models_dir}/refiner_hwc.onnx"
 scorer_engine="${models_dir}/scorer_hwc_dynamic_fp16.engine"
 refiner_engine="${models_dir}/refiner_hwc_dynamic_fp16.engine"
+engine_input_h="${FOUNDATIONPOSE_ENGINE_INPUT_H:-160}"
+engine_input_w="${FOUNDATIONPOSE_ENGINE_INPUT_W:-160}"
+engine_min_batch="${FOUNDATIONPOSE_ENGINE_MIN_BATCH:-1}"
+engine_opt_batch="${FOUNDATIONPOSE_ENGINE_OPT_BATCH:-252}"
+engine_max_batch="${FOUNDATIONPOSE_ENGINE_MAX_BATCH:-252}"
+
+is_positive_int() {
+  [[ "$1" =~ ^[1-9][0-9]*$ ]]
+}
+
+validate_positive_int() {
+  local name="$1"
+  local value="$2"
+
+  if ! is_positive_int "${value}"; then
+    echo "${name} must be a positive integer. Got: ${value}" >&2
+    exit 1
+  fi
+}
+
+shape_spec() {
+  local batch="$1"
+  printf 'render_input:%sx%sx%sx6,transf_input:%sx%sx%sx6' \
+    "${batch}" "${engine_input_h}" "${engine_input_w}" \
+    "${batch}" "${engine_input_h}" "${engine_input_w}"
+}
 
 prepend_path() {
   local var_name="$1"
@@ -132,6 +158,18 @@ if [[ ! -f "${refiner_onnx}" ]]; then
   exit 1
 fi
 
+validate_positive_int "FOUNDATIONPOSE_ENGINE_INPUT_H" "${engine_input_h}"
+validate_positive_int "FOUNDATIONPOSE_ENGINE_INPUT_W" "${engine_input_w}"
+validate_positive_int "FOUNDATIONPOSE_ENGINE_MIN_BATCH" "${engine_min_batch}"
+validate_positive_int "FOUNDATIONPOSE_ENGINE_OPT_BATCH" "${engine_opt_batch}"
+validate_positive_int "FOUNDATIONPOSE_ENGINE_MAX_BATCH" "${engine_max_batch}"
+
+if (( engine_min_batch > engine_opt_batch || engine_opt_batch > engine_max_batch )); then
+  echo "Engine batch profile must satisfy min <= opt <= max." >&2
+  echo "Got min=${engine_min_batch}, opt=${engine_opt_batch}, max=${engine_max_batch}" >&2
+  exit 1
+fi
+
 tensorrt_root="$(detect_tensorrt_root || true)"
 if [[ -z "${tensorrt_root}" ]]; then
   echo "TensorRT not found. Please install it or export your TENSORRT_ROOT." >&2
@@ -154,9 +192,9 @@ convert_with() {
   local engine_path="$3"
 
   "${converter}" --onnx="${onnx_path}" \
-                 --minShapes=render_input:1x160x160x6,transf_input:1x160x160x6 \
-                 --optShapes=render_input:252x160x160x6,transf_input:252x160x160x6 \
-                 --maxShapes=render_input:252x160x160x6,transf_input:252x160x160x6 \
+                 --minShapes="$(shape_spec "${engine_min_batch}")" \
+                 --optShapes="$(shape_spec "${engine_opt_batch}")" \
+                 --maxShapes="$(shape_spec "${engine_max_batch}")" \
                  --fp16 \
                  --saveEngine="${engine_path}"
 }
@@ -178,6 +216,8 @@ fi
 
 echo "Converting ONNX models with ${converter}"
 echo "  models: ${models_dir}"
+echo "  input: ${engine_input_h}x${engine_input_w}x6"
+echo "  batch profile: min=${engine_min_batch}, opt=${engine_opt_batch}, max=${engine_max_batch}"
 
 convert_with "${converter}" "${scorer_onnx}" "${scorer_engine}"
 convert_with "${converter}" "${refiner_onnx}" "${refiner_engine}"
