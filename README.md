@@ -24,6 +24,8 @@ Provided [tutorial scripts](docs/gen_3d_obj_with_bundlesdf.md) for generating 3D
 
 
 ## Pixi Setup
+Install the tensorrt on the pc. Please refer to `https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/installing.html`.
+It's recommended to install using `Debian/RPM` if you have the root access.
 
 1. Initialize submodules.
 ```
@@ -44,6 +46,7 @@ pixi run build
 ```
 pixi run convert-models
 ```
+This would take some time.
 
 5. Download test data for checking.
 ```

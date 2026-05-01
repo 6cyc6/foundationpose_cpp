@@ -38,15 +38,17 @@ detect_tensorrt_root() {
   local candidates=(
     "${TENSORRT_ROOT:-}"
     "${pixi_prefix}"
+    "/usr"
     "/usr/local/cuda"
     /usr/local/cuda-*
-    "/usr"
   )
   local candidate
 
   for candidate in "${candidates[@]}"; do
     if [[ -n "${candidate}" && \
-          ( -f "${candidate}/include/NvInfer.h" || -f "${candidate}/targets/x86_64-linux/include/NvInfer.h" ) ]]; then
+          ( -f "${candidate}/include/NvInfer.h" || \
+            -f "${candidate}/include/x86_64-linux-gnu/NvInfer.h" || \
+            -f "${candidate}/targets/x86_64-linux/include/NvInfer.h" ) ]]; then
       printf '%s\n' "${candidate}"
       return 0
     fi
@@ -62,6 +64,7 @@ detect_tensorrt_lib_dir() {
 
   if [[ -n "${tensorrt_root}" ]]; then
     candidates+=(
+      "${tensorrt_root}/lib/x86_64-linux-gnu"
       "${tensorrt_root}/targets/x86_64-linux/lib"
       "${tensorrt_root}/lib"
       "${tensorrt_root}/lib64"

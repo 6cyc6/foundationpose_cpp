@@ -19,26 +19,26 @@ if(ENABLE_TENSORRT)
       $ENV{TENSORRT_ROOT}
       $ENV{CONDA_PREFIX}
       ${CUDA_TOOLKIT_ROOT_DIR}
+      /usr
       /usr/local/cuda
-      ${TENSORRT_CUDA_ROOTS}
-      /usr)
+      ${TENSORRT_CUDA_ROOTS})
 
   find_path(TENSORRT_INCLUDE_DIR
             NvInfer.h
             PATHS ${TENSORRT_ROOT_CANDIDATES}
-            PATH_SUFFIXES include targets/x86_64-linux/include)
+            PATH_SUFFIXES include include/x86_64-linux-gnu targets/x86_64-linux/include)
   find_library(TENSORRT_NVINFER_LIBRARY
                nvinfer
                PATHS ${TENSORRT_ROOT_CANDIDATES}
-               PATH_SUFFIXES lib lib64 targets/x86_64-linux/lib)
+               PATH_SUFFIXES lib lib64 lib/x86_64-linux-gnu targets/x86_64-linux/lib)
   find_library(TENSORRT_NVONNXPARSER_LIBRARY
                nvonnxparser
                PATHS ${TENSORRT_ROOT_CANDIDATES}
-               PATH_SUFFIXES lib lib64 targets/x86_64-linux/lib)
+               PATH_SUFFIXES lib lib64 lib/x86_64-linux-gnu targets/x86_64-linux/lib)
   find_library(TENSORRT_NVINFER_PLUGIN_LIBRARY
                nvinfer_plugin
                PATHS ${TENSORRT_ROOT_CANDIDATES}
-               PATH_SUFFIXES lib lib64 targets/x86_64-linux/lib)
+               PATH_SUFFIXES lib lib64 lib/x86_64-linux-gnu targets/x86_64-linux/lib)
 
   if(NOT TENSORRT_INCLUDE_DIR OR
      NOT TENSORRT_NVINFER_LIBRARY OR
@@ -60,13 +60,20 @@ add_subdirectory(simple_tests)
 
 if(ENABLE_TENSORRT)
   if(TARGET trt_core)
-    target_include_directories(trt_core PUBLIC ${TENSORRT_INCLUDE_DIR})
-    target_link_options(trt_core PUBLIC "-L${TENSORRT_LIBRARY_DIR}")
+    target_compile_options(trt_core PRIVATE "SHELL:-idirafter ${TENSORRT_INCLUDE_DIR}")
+    set_property(TARGET trt_core PROPERTY LINK_LIBRARIES
+      deploy_core
+      CUDA::cudart
+      ${TENSORRT_NVINFER_LIBRARY}
+      ${TENSORRT_NVONNXPARSER_LIBRARY}
+      ${TENSORRT_NVINFER_PLUGIN_LIBRARY}
+    )
+    set_property(TARGET trt_core PROPERTY INTERFACE_LINK_LIBRARIES deploy_core)
   endif()
 
   add_executable(onnx_to_trt tools/onnx_to_trt.cpp)
   target_compile_features(onnx_to_trt PRIVATE cxx_std_17)
-  target_include_directories(onnx_to_trt PRIVATE ${TENSORRT_INCLUDE_DIR})
+  target_compile_options(onnx_to_trt PRIVATE "SHELL:-idirafter ${TENSORRT_INCLUDE_DIR}")
   target_link_libraries(onnx_to_trt PRIVATE
     CUDA::cudart
     ${TENSORRT_NVINFER_LIBRARY}

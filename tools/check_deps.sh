@@ -63,12 +63,14 @@ detect_tensorrt_root() {
   local candidate
 
   if [[ "${FOUNDATIONPOSE_ALLOW_SYSTEM_DEPS:-1}" != "0" ]]; then
-    candidates+=("/usr/local/cuda" /usr/local/cuda-* "/usr")
+    candidates+=("/usr" "/usr/local/cuda" /usr/local/cuda-*)
   fi
 
   for candidate in "${candidates[@]}"; do
     if [[ -n "${candidate}" && \
-          ( -f "${candidate}/include/NvInfer.h" || -f "${candidate}/targets/x86_64-linux/include/NvInfer.h" ) ]]; then
+          ( -f "${candidate}/include/NvInfer.h" || \
+            -f "${candidate}/include/x86_64-linux-gnu/NvInfer.h" || \
+            -f "${candidate}/targets/x86_64-linux/include/NvInfer.h" ) ]]; then
       printf '%s\n' "${candidate}"
       return 0
     fi
@@ -84,6 +86,7 @@ detect_tensorrt_lib_dir() {
 
   if [[ -n "${tensorrt_root}" ]]; then
     candidates+=(
+      "${tensorrt_root}/lib/x86_64-linux-gnu"
       "${tensorrt_root}/targets/x86_64-linux/lib"
       "${tensorrt_root}/lib"
       "${tensorrt_root}/lib64"
@@ -105,6 +108,38 @@ detect_tensorrt_lib_dir() {
 
   for candidate in "${candidates[@]}"; do
     if [[ -f "${candidate}/libnvinfer.so" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+detect_tensorrt_header() {
+  local tensorrt_root="$1"
+  local candidates=()
+  local candidate
+
+  if [[ -n "${tensorrt_root}" ]]; then
+    candidates+=(
+      "${tensorrt_root}/include/NvInfer.h"
+      "${tensorrt_root}/include/x86_64-linux-gnu/NvInfer.h"
+      "${tensorrt_root}/targets/x86_64-linux/include/NvInfer.h"
+    )
+  fi
+
+  if [[ "${FOUNDATIONPOSE_ALLOW_SYSTEM_DEPS:-1}" != "0" ]]; then
+    candidates+=(
+      "/usr/include/x86_64-linux-gnu/NvInfer.h"
+      "/usr/local/cuda/include/NvInfer.h"
+      /usr/local/cuda-*/include/NvInfer.h
+      /usr/local/cuda-*/targets/x86_64-linux/include/NvInfer.h
+    )
+  fi
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "${candidate}" ]]; then
       printf '%s\n' "${candidate}"
       return 0
     fi
@@ -169,6 +204,7 @@ path_status() {
 cuda_root="$(detect_cuda_root || true)"
 tensorrt_root="$(detect_tensorrt_root || true)"
 tensorrt_lib_dir="$(detect_tensorrt_lib_dir "${tensorrt_root}" || true)"
+tensorrt_header="$(detect_tensorrt_header "${tensorrt_root}" || true)"
 trtexec_bin="$(detect_trtexec "${tensorrt_root}" || true)"
 if [[ -n "${trtexec_bin}" ]]; then
   model_converter_status="ok: ${trtexec_bin} (trtexec)"
@@ -233,7 +269,7 @@ else
   path_status "CV-CUDA cmake" "${cvcuda_root}/lib/x86_64-linux-gnu/cmake/nvcv_types/nvcv_types-config.cmake"
 fi
 path_status "OpenCV cmake" "${pixi_prefix}/lib/cmake/opencv4/OpenCVConfig.cmake"
-path_status "TensorRT header" "${TENSORRT_ROOT:-}/include/NvInfer.h"
+path_status "TensorRT header" "${tensorrt_header:-${TENSORRT_ROOT:-}/include/NvInfer.h}"
 path_status "simple_tests" "${build_dir}/bin/simple_tests"
 path_status "onnx_to_trt" "${onnx_to_trt_bin}"
 path_status "scorer ONNX" "${models_dir}/scorer_hwc.onnx"
