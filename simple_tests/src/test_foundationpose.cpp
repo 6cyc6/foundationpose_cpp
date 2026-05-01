@@ -5,19 +5,54 @@
 #include "detection_6d_foundationpose/foundationpose.hpp"
 #include "trt_core/trt_core.h"
 
+#include <chrono>
+#include <cstdlib>
 #include <gtest/gtest.h>
 
 using namespace inference_core;
 using namespace detection_6d;
 
-static const std::string refiner_engine_path_ = "/workspace/models/refiner_hwc_dynamic_fp16.engine";
-static const std::string scorer_engine_path_  = "/workspace/models/scorer_hwc_dynamic_fp16.engine";
-static const std::string demo_data_path_      = "/workspace/test_data/mustard0";
+#ifndef DEFAULT_FOUNDATIONPOSE_MODELS_DIR
+#define DEFAULT_FOUNDATIONPOSE_MODELS_DIR "models"
+#endif
+
+#ifndef DEFAULT_FOUNDATIONPOSE_TEST_DATA_DIR
+#define DEFAULT_FOUNDATIONPOSE_TEST_DATA_DIR "test_data"
+#endif
+
+namespace
+{
+
+std::string EnvOrDefault(const char* name, const char* default_value)
+{
+  const char* value = std::getenv(name);
+  return (value != nullptr && value[0] != '\0') ? std::string(value) : std::string(default_value);
+}
+
+std::string JoinPath(const std::string& base, const std::string& relative)
+{
+  if (base.empty() || base.back() == '/')
+  {
+    return base + relative;
+  }
+
+  return base + "/" + relative;
+}
+
+}  // namespace
+
+static const std::string models_path_         = EnvOrDefault("FOUNDATIONPOSE_MODELS_DIR", DEFAULT_FOUNDATIONPOSE_MODELS_DIR);
+static const std::string test_data_path_      = EnvOrDefault("FOUNDATIONPOSE_TEST_DATA_DIR", DEFAULT_FOUNDATIONPOSE_TEST_DATA_DIR);
+static const std::string refiner_engine_path_ = JoinPath(models_path_, "refiner_hwc_dynamic_fp16.engine");
+static const std::string scorer_engine_path_  = JoinPath(models_path_, "scorer_hwc_dynamic_fp16.engine");
+static const std::string demo_data_path_      = JoinPath(test_data_path_, "mustard0");
 static const std::string demo_textured_obj_path = demo_data_path_ + "/mesh/textured_simple.obj";
 static const std::string demo_textured_map_path = demo_data_path_ + "/mesh/texture_map.png";
 static const std::string demo_name_             = "mustard";
 static const std::string frame_id               = "1581120424100262102";
 static const size_t      refine_itr             = 1;
+static const std::string register_plot_path_     = JoinPath(test_data_path_, "test_foundationpose_plot.png");
+static const std::string result_video_path_      = JoinPath(test_data_path_, "test_foundationpose_result.mp4");
 
 std::tuple<std::shared_ptr<Base6DofDetectionModel>, std::shared_ptr<BaseMeshLoader>> CreateModel()
 {
@@ -67,7 +102,7 @@ TEST(foundationpose_test, test)
   cv::cvtColor(regist_plot, regist_plot, cv::COLOR_RGB2BGR);
   auto draw_pose = ConvertPoseMesh2BBox(out_pose, mesh_loader);
   draw3DBoundingBox(intrinsic_in_mat, draw_pose, 480, 640, object_dimension, regist_plot);
-  cv::imwrite("/workspace/test_data/test_foundationpose_plot.png", regist_plot);
+  cv::imwrite(register_plot_path_, regist_plot);
 
   auto rgb_paths = get_files_in_directory(demo_data_path_ + "/rgb/");
   std::sort(rgb_paths.begin(), rgb_paths.end());
@@ -86,7 +121,13 @@ TEST(foundationpose_test, test)
     auto [cur_rgb, cur_depth]  = ReadRgbDepth(cur_rgb_path, cur_depth_path);
 
     Eigen::Matrix4f track_pose;
+    const auto      track_start = std::chrono::steady_clock::now();
     CHECK(foundation_pose->Track(cur_rgb.clone(), cur_depth, out_pose, demo_name_, track_pose));
+    const auto track_end = std::chrono::steady_clock::now();
+    const auto track_ms =
+        std::chrono::duration<double, std::milli>(track_end - track_start).count();
+    LOG(WARNING) << "Track iteration " << i << "/" << (total - 1) << " time: " << track_ms
+                 << " ms";
     LOG(WARNING) << "Track pose : " << track_pose;
 
     cv::Mat track_plot = cur_rgb.clone();
@@ -100,7 +141,7 @@ TEST(foundationpose_test, test)
     out_pose = track_pose;
   }
 
-  saveVideo(result_image_sequence, "/workspace/test_data/test_foundationpose_result.mp4");
+  saveVideo(result_image_sequence, result_video_path_);
 }
 
 TEST(foundationpose_test, speed_register)

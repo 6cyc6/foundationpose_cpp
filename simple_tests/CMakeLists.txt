@@ -18,9 +18,15 @@ enable_testing()
 include_directories(
   include
   ${OpenCV_INCLUDE_DIRS}
+  ${CMAKE_SOURCE_DIR}/easy_deploy_tool/inference_core/trt_core/include
 )
 
 add_executable(${PROJECT_NAME} ${source_file})
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+  DEFAULT_FOUNDATIONPOSE_MODELS_DIR="${CMAKE_SOURCE_DIR}/models"
+  DEFAULT_FOUNDATIONPOSE_TEST_DATA_DIR="${CMAKE_SOURCE_DIR}/test_data"
+)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC
   GTest::gtest_main

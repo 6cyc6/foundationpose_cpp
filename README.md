@@ -22,6 +22,39 @@ Provided [tutorial scripts](docs/gen_3d_obj_with_bundlesdf.md) for generating 3D
 
 3. :fire: Supports Jetson Orin development boards (Orin-NX-16GB).
 
+
+## Pixi Setup
+
+1. Initialize submodules.
+```
+pixi run init-submodules
+```
+
+2. Download onnx models.
+```
+pixi run download-onnx-model
+```
+
+3. Build the repo.
+```
+pixi run build
+```
+
+4. Convert onnx model to tensorrt model.
+```
+pixi run convert-models
+```
+
+5. Download test data for checking.
+```
+pixi run download-testdata
+```
+
+6. Run demo to check the tensorrt model.
+```
+pixi run demo
+```
+
 ## Demo
 
 Test results on public mustard dataset:
@@ -55,11 +88,20 @@ Test results on public mustard dataset:
     ```bash
     git clone git@github.com:zz990099/foundationpose_cpp.git
     cd foundationpose_cpp
-    git submodule init
-    git submodule update
+    pixi run init-submodules
     ```
 
-2. Build using Docker:
+2. Check local dependencies:
+    ```bash
+    pixi run check-deps
+    ```
+
+3. Build using Pixi:
+    ```bash
+    pixi run build
+    ```
+
+4. Build using Docker:
     ```bash
     cd ${foundationpose_cpp}
     bash easy_deploy_tool/docker/easy_deploy_startup.sh
@@ -69,49 +111,49 @@ Test results on public mustard dataset:
 
 ### Model Conversion
 
-1. Download ONNX models from [google drive](https://drive.google.com/drive/folders/1AmBopDz-RrykSZVCroDH6jFc1-k8HkL0?usp=drive_link) and place them in `/workspace/models/`.
+1. Download ONNX models:
+    ```bash
+    pixi run download-onnx-model
+    ```
 
 2. Convert models:
     ```bash
-    cd /workspace
-    bash tools/cvt_onnx2trt.bash
+    pixi run convert-models
     ```
 
 ### Build Project
 
 1. Compile the project:
-```bash
-  cd /workspace
-  mkdir build && cd build
-  cmake -DENABLE_TENSORRT=ON ..
-  make -j
-```
+    ```bash
+    pixi run build
+    ```
 
 ### Run Demo
 
 #### Use public Dataset Demo (mustard)
 
-1. Download and extract the dataset to `/workspace/test_data/` from [here](https://drive.google.com/drive/folders/1pRyFmxYXmAnpku7nGRioZaKrVJtIsroP).
+1. Download and extract the dataset:
+    ```bash
+    pixi run download-testdata
+    ```
 
 2. Run tests:
     ```bash
-    cd /workspace/build
-    ./bin/simple_tests --gtest_filter=foundationpose_test.test
+    pixi run demo
     ```
 
 ### Custom 3D Model Generation
 
 1. Refer to [Generating 3D Models with BundleSDF](./docs/gen_3d_obj_with_bundlesdf.md).
 
-2. Modify paths in `/workspace/simple_tests/src/test_foundationpose.cpp` for your data and rebuild.
+2. Put your data under `test_data/`, or export `FOUNDATIONPOSE_TEST_DATA_DIR` and `FOUNDATIONPOSE_MODELS_DIR`.
 
 3. Run tests:
     ```bash
-    cd /workspace/build
-    ./bin/simple_tests --gtest_filter=foundationpose_test.test
+    pixi run demo
     ```
 
-4. Results for Register and Track processes will be saved in `/workspace/test_data/`.
+4. Results for Register and Track processes will be saved in the test data directory.
 
 ## References
 

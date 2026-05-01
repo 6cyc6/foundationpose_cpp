@@ -23,7 +23,6 @@ find_package(CUDA REQUIRED)
 find_package(CUDAToolkit REQUIRED)
 find_package(nvcv_types REQUIRED)
 find_package(cvcuda REQUIRED)
-set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 enable_language(CUDA)
 
 

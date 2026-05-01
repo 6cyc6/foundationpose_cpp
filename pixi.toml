@@ -1,0 +1,64 @@
+[project]
+name = "foundationpose-cpp"
+version = "0.1.0"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[system-requirements]
+cuda = "12"
+
+[dependencies]
+assimp = ">=5.4,<6"
+c-compiler = ">=1.9,<2"
+cmake = ">=3.28,<4"
+cuda-cudart-dev = "*"
+cuda-driver-dev = "*"
+cuda-nvcc = "*"
+cuda-version = "12.*"
+cxx-compiler = ">=1.9,<2"
+eigen = ">=3.4,<4"
+git = ">=2.49,<3"
+glog = ">=0.7,<1"
+gdown = ">=6.0.0,<7"
+gtest = ">=1.15,<2"
+libcvcuda-dev = "*"
+libopencv = ">=4.10,<5"
+libunwind = ">=1.8,<2"
+make = ">=4.4,<5"
+ninja = ">=1.12,<2"
+pkg-config = ">=0.29,<1"
+python = ">=3.11,<3.14"
+wget = ">=1.25,<2"
+
+[tasks.init-submodules]
+description = "Initialize this checkout as a Git repo and fetch configured submodules."
+cmd = "git init && git submodule update --init --recursive"
+
+[tasks.configure]
+description = "Configure the CMake project in the Pixi build directory."
+cmd = "cmake --fresh -S . -B build-pixi -G Ninja -DENABLE_TENSORRT=ON -DCMAKE_CUDA_COMPILER=$CONDA_PREFIX/bin/nvcc -DCMAKE_BUILD_TYPE=Release"
+
+[tasks.build]
+description = "Configure and build the CMake project in the Pixi build directory."
+depends-on = ["configure"]
+cmd = "cmake --build build-pixi -j"
+
+[tasks.download-onnx-model]
+description = "Download FoundationPose ONNX model files."
+cmd = "bash tools/download_onnx_model.sh"
+
+[tasks.convert-models]
+description = "Convert ONNX model files to TensorRT engine files."
+cmd = "bash tools/cvt_onnx2trt.bash"
+
+[tasks.download-testdata]
+description = "Download and prepare the FoundationPose mustard0 test dataset."
+cmd = "bash tools/download_testdata.sh"
+
+[tasks.demo]
+description = "Run the local FoundationPose demo test binary."
+cmd = "bash tools/run_local_demo.sh"
+
+[tasks.check-deps]
+description = "Print detected local CUDA, TensorRT, model, and test data dependencies."
+cmd = "bash tools/check_deps.sh"
