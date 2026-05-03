@@ -59,6 +59,10 @@ cmd = "bash tools/download_testdata.sh"
 description = "Run the local FoundationPose demo test binary."
 cmd = "bash tools/run_local_demo.sh"
 
+[tasks.demo-fp-trt]
+description = "Run the local TensorRT FoundationPose demo test binary."
+cmd = "bash tools/run_local_demo.sh"
+
 [tasks.check-deps]
 description = "Print detected local CUDA, TensorRT, model, and test data dependencies."
 cmd = "bash tools/check_deps.sh"

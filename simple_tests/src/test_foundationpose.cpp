@@ -50,7 +50,8 @@ static const std::string demo_textured_obj_path = demo_data_path_ + "/mesh/textu
 static const std::string demo_textured_map_path = demo_data_path_ + "/mesh/texture_map.png";
 static const std::string demo_name_             = "mustard";
 static const std::string frame_id               = "1581120424100262102";
-static const size_t      refine_itr             = 1;
+// static const size_t      refine_itr             = 1;
+static const size_t      refine_itr             = 5;
 static const std::string register_plot_path_     = JoinPath(test_data_path_, "test_foundationpose_plot.png");
 static const std::string result_video_path_      = JoinPath(test_data_path_, "test_foundationpose_result.mp4");
 
@@ -122,11 +123,12 @@ TEST(foundationpose_test, test)
 
     Eigen::Matrix4f track_pose;
     const auto      track_start = std::chrono::steady_clock::now();
-    CHECK(foundation_pose->Track(cur_rgb.clone(), cur_depth, out_pose, demo_name_, track_pose));
+    // CHECK(foundation_pose->Track(cur_rgb.clone(), cur_depth, out_pose, demo_name_, track_pose));
+    CHECK(foundation_pose->Track(cur_rgb.clone(), cur_depth, out_pose, demo_name_, track_pose, refine_itr));
     const auto track_end = std::chrono::steady_clock::now();
     const auto track_ms =
         std::chrono::duration<double, std::milli>(track_end - track_start).count();
-    LOG(WARNING) << "Track iteration " << i << "/" << (total - 1) << " time: " << track_ms
+    LOG(WARNING) << "Tracking iteration " << i << "/" << (total - 1) << " time: " << track_ms
                  << " ms";
     LOG(WARNING) << "Track pose : " << track_pose;
 
@@ -188,7 +190,8 @@ TEST(foundationpose_test, speed_track)
   for (int i = 0; i < 5000; ++i)
   {
     Eigen::Matrix4f track_pose;
-    foundation_pose->Track(rgb.clone(), depth, first_pose, demo_name_, track_pose);
+    // foundation_pose->Track(rgb.clone(), depth, first_pose, demo_name_, track_pose);
+    foundation_pose->Track(rgb.clone(), depth, first_pose, demo_name_, track_pose, refine_itr);
     counter.Count(1);
   }
 
