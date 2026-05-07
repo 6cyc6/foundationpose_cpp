@@ -24,8 +24,29 @@ Provided [tutorial scripts](docs/gen_3d_obj_with_bundlesdf.md) for generating 3D
 
 
 ## Pixi Setup
-Install the tensorrt on the pc. Please refer to `https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/installing.html`.
-It's recommended to install using `Debian/RPM` if you have the root access.
+Pixi installs CUDA, CV-CUDA, OpenCV, and the build tools for this checkout.
+TensorRT must still come from the host system or a TensorRT tar install. Please
+refer to the NVIDIA TensorRT install guide:
+`https://docs.nvidia.com/deeplearning/tensorrt/latest/installing-tensorrt/installing.html`.
+
+On Ubuntu, this project does not require the full `tensorrt` meta-package. If
+`sudo apt-get install tensorrt` fails on `libnvinfer-samples` with missing
+`cuda-nvcc-12-*` or `libcudart.so.12-dev`, apt can see TensorRT but cannot see
+the matching CUDA Toolkit Debian packages. Either configure the NVIDIA CUDA apt
+repository and retry the full install, or install only the TensorRT development
+packages used by this project:
+
+```bash
+sudo apt-get install \
+  libnvinfer10 \
+  libnvinfer-plugin10 \
+  libnvonnxparsers10 \
+  libnvinfer-dev \
+  libnvinfer-plugin-dev \
+  libnvonnxparsers-dev \
+  libnvinfer-bin \
+  python3-libnvinfer
+```
 
 1. Initialize submodules.
 ```
